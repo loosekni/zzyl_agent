@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Col, Row, Space, Statistic, Table, Tag, Typography, message } from 'antd';
+import { Alert, Button, Card, Col, Form, Input, Row, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 
 import {
@@ -7,6 +7,7 @@ import {
   type Elder,
   type NursingProject,
   type Room,
+  createElder,
   listAlerts,
   listBeds,
   listElders,
@@ -18,6 +19,7 @@ import {
 const { Title, Paragraph } = Typography;
 
 export function NursingDashboardPage() {
+  const [elderForm] = Form.useForm();
   const [elders, setElders] = useState<Elder[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [beds, setBeds] = useState<Bed[]>([]);
@@ -56,6 +58,19 @@ export function NursingDashboardPage() {
     }
   };
 
+  const handleCreateElder = async (values: {
+    name: string;
+    gender?: string;
+    phone?: string;
+    family_contact?: string;
+    health_summary?: string;
+  }) => {
+    await createElder({ ...values, gender: values.gender || 'unknown' });
+    message.success('老人档案已保存');
+    elderForm.resetFields();
+    loadData();
+  };
+
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <Card>
@@ -83,6 +98,45 @@ export function NursingDashboardPage() {
           <Card><Statistic title="护理项目" value={projects.length} suffix="项" /></Card>
         </Col>
       </Row>
+
+      <Card title="新增老人档案">
+        <Form form={elderForm} layout="vertical" onFinish={handleCreateElder}>
+          <Row gutter={16}>
+            <Col xs={24} md={8}>
+              <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
+                <Input placeholder="例如：张桂兰" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item name="gender" label="性别" initialValue="unknown">
+                <Select
+                  options={[
+                    { value: 'female', label: '女' },
+                    { value: 'male', label: '男' },
+                    { value: 'unknown', label: '未知' }
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item name="phone" label="联系电话">
+                <Input placeholder="手机号" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item name="family_contact" label="家属联系人">
+                <Input placeholder="联系人姓名" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={16}>
+              <Form.Item name="health_summary" label="健康摘要">
+                <Input.TextArea rows={2} placeholder="慢病、跌倒风险、睡眠等摘要" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Button type="primary" htmlType="submit">保存老人档案</Button>
+        </Form>
+      </Card>
 
       <Card title="最新老人档案">
         <Table

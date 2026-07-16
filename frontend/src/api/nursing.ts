@@ -7,6 +7,14 @@ export interface Elder {
   health_summary?: string;
 }
 
+export interface ElderCreatePayload {
+  name: string;
+  gender: string;
+  phone?: string;
+  family_contact?: string;
+  health_summary?: string;
+}
+
 export interface Room {
   id: number;
   floor: string;
@@ -38,6 +46,10 @@ export interface AlertRecord {
 
 export async function listElders(): Promise<Elder[]> {
   return fetchJson('/api/nursing/elders');
+}
+
+export async function createElder(payload: ElderCreatePayload): Promise<Elder> {
+  return postJson('/api/nursing/elders', payload);
 }
 
 export async function listRooms(): Promise<Room[]> {
@@ -74,6 +86,18 @@ async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error('业务数据加载失败');
+  }
+  return response.json();
+}
+
+async function postJson<T>(url: string, payload: unknown): Promise<T> {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error('业务数据保存失败');
   }
   return response.json();
 }
