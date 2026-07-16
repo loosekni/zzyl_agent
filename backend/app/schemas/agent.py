@@ -18,3 +18,14 @@ class CheckInRecommendationRequest(BaseModel):
 class CheckInRecommendationResponse(BaseModel):
     elder_name: str
     suggestion: str
+
+
+class CarePlanRequest(BaseModel):
+    elder_name: str = Field(min_length=1, max_length=64)
+    care_goal: str = Field(default="", max_length=1000)
+
+
+class CarePlanResponse(BaseModel):
+    elder_name: str
+    care_goal: str
+    plan: str
