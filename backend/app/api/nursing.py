@@ -4,7 +4,17 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, SQLModel, select
 
 from app.core.database import get_session
-from app.models.nursing import AlertRecord, Bed, CheckInApplication, Elder, NursingProject, Room
+from app.models.nursing import (
+    AlertRecord,
+    AlertSeverity,
+    Bed,
+    BedStatus,
+    CheckInApplication,
+    Elder,
+    Gender,
+    NursingProject,
+    Room,
+)
 from app.schemas.nursing import (
     AlertRecordCreate,
     BedCreate,
@@ -86,3 +96,48 @@ def create_checkin(
     session: Session = Depends(get_session),
 ) -> CheckInApplication:
     return create_record(session, CheckInApplication.model_validate(payload))
+
+
+@router.post("/demo/seed")
+def seed_demo_data(session: Session = Depends(get_session)) -> dict[str, int]:
+    if session.exec(select(Elder)).first() is not None:
+        return {
+            "elders": len(session.exec(select(Elder)).all()),
+            "rooms": len(session.exec(select(Room)).all()),
+            "beds": len(session.exec(select(Bed)).all()),
+            "projects": len(session.exec(select(NursingProject)).all()),
+            "alerts": len(session.exec(select(AlertRecord)).all()),
+        }
+
+    elder = create_record(
+        session,
+        Elder(
+            name="张桂兰",
+            gender=Gender.female,
+            phone="13800000001",
+            family_contact="张小明",
+            health_summary="高血压病史，夜间起夜频繁，近期有轻微跌倒风险。",
+        ),
+    )
+    room = create_record(session, Room(floor="3F", room_no="301", room_type="care"))
+    create_record(session, Bed(room_id=room.id or 0, bed_no="301-1", status=BedStatus.available))
+    create_record(session, Bed(room_id=room.id or 0, bed_no="301-2", status=BedStatus.available))
+    create_record(
+        session,
+        NursingProject(name="血压监测", category="medical", description="每日早晚记录血压。", price=20),
+    )
+    create_record(
+        session,
+        NursingProject(name="夜间巡护", category="safety", description="夜间定时查看睡眠和离床情况。", price=35),
+    )
+    create_record(
+        session,
+        AlertRecord(
+            elder_id=elder.id,
+            device_name="智能床垫 A-301",
+            severity=AlertSeverity.high,
+            content="夜间 02:13 检测到离床超过 20 分钟未返回。",
+        ),
+    )
+
+    return {"elders": 1, "rooms": 1, "beds": 2, "projects": 2, "alerts": 1}
