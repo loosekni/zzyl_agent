@@ -122,6 +122,11 @@ export function NursingDashboardPage() {
     loadData();
   };
 
+  const getRoomLabel = (roomId: number) => {
+    const room = rooms.find((item) => item.id === roomId);
+    return room ? `${room.floor}-${room.room_no}` : roomId;
+  };
+
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <Card>
@@ -221,7 +226,7 @@ export function NursingDashboardPage() {
           pagination={false}
           columns={[
             { title: '床位号', dataIndex: 'bed_no' },
-            { title: '房间 ID', dataIndex: 'room_id' },
+            { title: '房间', dataIndex: 'room_id', render: (roomId: number) => getRoomLabel(roomId) },
             { title: '状态', dataIndex: 'status' }
           ]}
         />
