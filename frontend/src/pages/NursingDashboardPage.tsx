@@ -1,6 +1,7 @@
-import { Alert, Button, Card, Col, Form, Input, Row, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
+import { Alert, Button, Card, Col, Drawer, Form, Input, Row, Select, Space, Spin, Statistic, Table, Tag, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 
+import { requestAlertAnalysis } from '../api/agent';
 import {
   type AlertRecord,
   type Bed,
@@ -60,6 +61,9 @@ export function NursingDashboardPage() {
   const [checkIns, setCheckIns] = useState<CheckInApplication[]>([]);
   const [error, setError] = useState('');
   const [seeding, setSeeding] = useState(false);
+  const [analyzingId, setAnalyzingId] = useState<number | null>(null);
+  const [analysisText, setAnalysisText] = useState('');
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const loadData = () => {
     Promise.all([listElders(), listRooms(), listBeds(), listNursingProjects(), listAlerts(), listCheckIns()])
@@ -168,6 +172,21 @@ export function NursingDashboardPage() {
   const getRoomLabel = (roomId: number) => {
     const room = rooms.find((item) => item.id === roomId);
     return room ? `${room.floor}-${room.room_no}` : roomId;
+  };
+
+  const handleAnalyzeAlert = async (alertId: number) => {
+    setAnalyzingId(alertId);
+    setAnalysisText('');
+    setDrawerOpen(true);
+    try {
+      const data = await requestAlertAnalysis(alertId);
+      setAnalysisText(data.analysis);
+    } catch (analyzeError) {
+      message.error(analyzeError instanceof Error ? analyzeError.message : '分析失败');
+      setDrawerOpen(false);
+    } finally {
+      setAnalyzingId(null);
+    }
   };
 
   return (
@@ -491,10 +510,40 @@ export function NursingDashboardPage() {
               )
             },
             { title: '内容', dataIndex: 'content' },
-            { title: '状态', dataIndex: 'handled', render: (handled: boolean) => (handled ? '已处理' : '待处理') }
+            { title: '状态', dataIndex: 'handled', render: (handled: boolean) => (handled ? '已处理' : '待处理') },
+            {
+              title: '操作',
+              key: 'action',
+              render: (_: unknown, record: AlertRecord) => (
+                <Button
+                  type="link"
+                  size="small"
+                  loading={analyzingId === record.id}
+                  onClick={() => handleAnalyzeAlert(record.id)}
+                >
+                  分析
+                </Button>
+              )
+            }
           ]}
         />
       </Card>
+
+      <Drawer
+        title="告警分析结果"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        width={480}
+      >
+        {analyzingId !== null ? (
+          <div style={{ textAlign: 'center', padding: 48 }}>
+            <Spin tip="正在分析告警..." />
+          </div>
+        ) : null}
+        {analysisText ? (
+          <Paragraph style={{ whiteSpace: 'pre-wrap' }}>{analysisText}</Paragraph>
+        ) : null}
+      </Drawer>
     </Space>
   );
 }
