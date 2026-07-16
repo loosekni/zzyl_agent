@@ -38,3 +38,39 @@ class AlertAnalysisRequest(BaseModel):
 class AlertAnalysisResponse(BaseModel):
     alert_id: int
     analysis: str
+
+
+class HealthProfileRequest(BaseModel):
+    elder_id: int = Field(gt=0)
+
+
+class AlertStatItem(BaseModel):
+    severity: str
+    count: int
+
+
+class RecentAlertItem(BaseModel):
+    device_name: str
+    severity: str
+    content: str
+    created_at: str | None = None
+    handled: bool = False
+
+
+class TopDeviceItem(BaseModel):
+    device_name: str
+    count: int
+
+
+class HealthProfileResponse(BaseModel):
+    elder_id: int
+    elder_name: str
+    health_summary: str
+    alert_total: int
+    alert_stats: list[AlertStatItem]
+    recent_alerts: list[RecentAlertItem]
+    top_devices: list[TopDeviceItem]
+    risk_score: int
+    risk_level: str
+    recommended_projects: list[str]
+    summary: str
