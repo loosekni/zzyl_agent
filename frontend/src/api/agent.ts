@@ -66,3 +66,49 @@ export async function requestAlertAnalysis(alertId: number): Promise<{ alert_id:
 
   return response.json();
 }
+
+export interface AlertStatItem {
+  severity: string;
+  count: number;
+}
+
+export interface RecentAlertItem {
+  device_name: string;
+  severity: string;
+  content: string;
+  created_at: string | null;
+  handled: boolean;
+}
+
+export interface TopDeviceItem {
+  device_name: string;
+  count: number;
+}
+
+export interface HealthProfile {
+  elder_id: number;
+  elder_name: string;
+  health_summary: string;
+  alert_total: number;
+  alert_stats: AlertStatItem[];
+  recent_alerts: RecentAlertItem[];
+  top_devices: TopDeviceItem[];
+  risk_score: number;
+  risk_level: string;
+  recommended_projects: string[];
+  summary: string;
+}
+
+export async function requestHealthProfile(elderId: number): Promise<HealthProfile> {
+  const response = await fetch('/api/agent/health-profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ elder_id: elderId })
+  });
+
+  if (!response.ok) {
+    throw new Error('生成健康画像失败');
+  }
+
+  return response.json();
+}

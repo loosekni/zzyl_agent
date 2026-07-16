@@ -1,5 +1,6 @@
-import { Button, Card, Input, Space, Typography, message as antdMessage } from 'antd';
-import { useEffect, useState } from 'react';
+import { RobotOutlined, TeamOutlined } from '@ant-design/icons';
+import { Button, Card, Input, Select, Space, Typography, message as antdMessage } from 'antd';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   checkAgentHealth,
@@ -8,8 +9,15 @@ import {
   requestCheckInRecommendation,
   sendAgentMessage
 } from '../api/agent';
+import { type Elder, listElders } from '../api/nursing';
+import { HealthProfileCard } from '../components/HealthProfileCard';
 
 const { Title, Paragraph, Text } = Typography;
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 interface AgentHomePageProps {
   embedded?: boolean;
@@ -17,31 +25,55 @@ interface AgentHomePageProps {
 
 export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
   const [health, setHealth] = useState('检查中');
-  const [input, setInput] = useState('帮我为一位需要护理的老人生成入住建议');
-  const [answer, setAnswer] = useState('');
-  const [elderName, setElderName] = useState('');
+  const [elders, setElders] = useState<Elder[]>([]);
+
+  // 对话（多轮）
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // 入住推荐
+  const [recommendElderName, setRecommendElderName] = useState<string>();
   const [recommendation, setRecommendation] = useState('');
-  const [carePlanElderName, setCarePlanElderName] = useState('');
+  const [recommendLoading, setRecommendLoading] = useState(false);
+
+  // 护理计划
+  const [carePlanElderName, setCarePlanElderName] = useState<string>();
   const [careGoal, setCareGoal] = useState('');
   const [carePlan, setCarePlan] = useState('');
+  const [carePlanLoading, setCarePlanLoading] = useState(false);
+
+  // 告警分析
   const [alertId, setAlertId] = useState('');
   const [alertAnalysis, setAlertAnalysis] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [recommendLoading, setRecommendLoading] = useState(false);
-  const [carePlanLoading, setCarePlanLoading] = useState(false);
   const [alertLoading, setAlertLoading] = useState(false);
 
   useEffect(() => {
     checkAgentHealth()
       .then((data) => setHealth(data.status))
       .catch(() => setHealth('offline'));
+    listElders().then(setElders).catch(() => setElders([]));
   }, []);
 
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  const elderOptions = elders.map((elder) => ({ value: elder.name, label: elder.name }));
+
   const handleSend = async () => {
+    const text = input.trim();
+    if (!text || loading) {
+      return;
+    }
+    const next = [...messages, { role: 'user' as const, content: text }];
+    setMessages(next);
+    setInput('');
     setLoading(true);
     try {
-      const data = await sendAgentMessage(input);
-      setAnswer(data.answer);
+      const data = await sendAgentMessage(text);
+      setMessages([...next, { role: 'assistant', content: data.answer }]);
     } catch (error) {
       antdMessage.error(error instanceof Error ? error.message : '请求失败');
     } finally {
@@ -50,9 +82,13 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
   };
 
   const handleRecommend = async () => {
+    if (!recommendElderName) {
+      antdMessage.warning('请先选择老人');
+      return;
+    }
     setRecommendLoading(true);
     try {
-      const data = await requestCheckInRecommendation(elderName);
+      const data = await requestCheckInRecommendation(recommendElderName);
       setRecommendation(data.suggestion);
     } catch (error) {
       antdMessage.error(error instanceof Error ? error.message : '请求失败');
@@ -62,6 +98,10 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
   };
 
   const handleCarePlan = async () => {
+    if (!carePlanElderName) {
+      antdMessage.warning('请先选择老人');
+      return;
+    }
     setCarePlanLoading(true);
     try {
       const data = await requestCarePlan(carePlanElderName, careGoal);
@@ -74,6 +114,10 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
   };
 
   const handleAlertAnalysis = async () => {
+    if (!alertId) {
+      antdMessage.warning('请输入告警 ID');
+      return;
+    }
     setAlertLoading(true);
     try {
       const data = await requestAlertAnalysis(Number(alertId));
@@ -88,19 +132,25 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
   const content = (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <Card>
-        <Title level={3}>单体 Agent 平台</Title>
+        <Title level={3}>智能助手</Title>
         <Paragraph>
-          当前先提供 FastAPI + LangGraph 的最小对话入口，后续逐步迁移入住、护理、告警和健康评估流程。
+          基于养老业务数据，提供健康风险画像、入住推荐、护理计划与告警分析等 Agent 能力。可在「养老业务」页对告警一键分析。
         </Paragraph>
         <Text type={health === 'ok' ? 'success' : 'secondary'}>后端状态：{health}</Text>
       </Card>
 
+      <HealthProfileCard elders={elders} />
+
       <Card title="入住推荐">
         <Space direction="vertical" style={{ width: '100%' }}>
-          <Input
-            value={elderName}
-            placeholder="输入老人姓名"
-            onChange={(event) => setElderName(event.target.value)}
+          <Select
+            showSearch
+            placeholder="选择老人"
+            style={{ width: '100%' }}
+            optionFilterProp="label"
+            options={elderOptions}
+            value={recommendElderName}
+            onChange={setRecommendElderName}
           />
           <Button type="primary" loading={recommendLoading} onClick={handleRecommend}>
             生成入住建议
@@ -111,10 +161,14 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
 
       <Card title="护理计划生成">
         <Space direction="vertical" style={{ width: '100%' }}>
-          <Input
+          <Select
+            showSearch
+            placeholder="选择老人"
+            style={{ width: '100%' }}
+            optionFilterProp="label"
+            options={elderOptions}
             value={carePlanElderName}
-            placeholder="输入老人姓名"
-            onChange={(event) => setCarePlanElderName(event.target.value)}
+            onChange={setCarePlanElderName}
           />
           <Input.TextArea
             value={careGoal}
@@ -133,7 +187,7 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
         <Space direction="vertical" style={{ width: '100%' }}>
           <Input
             value={alertId}
-            placeholder="输入告警 ID"
+            placeholder="输入告警 ID（可在「养老业务」页告警列表中查看）"
             onChange={(event) => setAlertId(event.target.value)}
           />
           <Button type="primary" loading={alertLoading} onClick={handleAlertAnalysis}>
@@ -143,14 +197,48 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
         </Space>
       </Card>
 
-      <Card title="Agent 对话">
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <Input.TextArea value={input} rows={4} onChange={(event) => setInput(event.target.value)} />
+      <Card title="Agent 对话" className="chat-card">
+        <div className="chat-window">
+          {messages.length === 0 ? (
+            <div className="chat-empty">
+              <RobotOutlined style={{ fontSize: 32, color: '#bfbfbf' }} />
+              <Text type="secondary">向智能助手提问，例如「张桂兰老人近期需要注意什么？」</Text>
+            </div>
+          ) : null}
+          {messages.map((msg, index) => (
+            <div key={index} className={`chat-bubble chat-bubble-${msg.role}`}>
+              <div className="chat-bubble-avatar">
+                {msg.role === 'user' ? <TeamOutlined /> : <RobotOutlined />}
+              </div>
+              <div className="chat-bubble-content">{msg.content}</div>
+            </div>
+          ))}
+          {loading ? (
+            <div className="chat-bubble chat-bubble-assistant">
+              <div className="chat-bubble-avatar">
+                <RobotOutlined />
+              </div>
+              <div className="chat-bubble-content chat-typing">正在思考...</div>
+            </div>
+          ) : null}
+          <div ref={chatEndRef} />
+        </div>
+        <Input.TextArea
+          value={input}
+          rows={3}
+          placeholder="输入消息，Ctrl/⌘ + Enter 发送"
+          onChange={(event) => setInput(event.target.value)}
+          onPressEnter={(event) => {
+            if (event.ctrlKey || event.metaKey) {
+              handleSend();
+            }
+          }}
+        />
+        <div style={{ marginTop: 8, textAlign: 'right' }}>
           <Button type="primary" loading={loading} onClick={handleSend}>
             发送
           </Button>
-          {answer ? <Card type="inner">{answer}</Card> : null}
-        </Space>
+        </div>
       </Card>
     </Space>
   );

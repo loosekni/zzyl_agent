@@ -12,3 +12,77 @@ body {
   font-size: 18px;
   font-weight: 700;
 }
+
+/* 多轮聊天 */
+.chat-card .chat-window {
+  height: 360px;
+  overflow-y: auto;
+  padding: 12px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.chat-card .chat-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #bfbfbf;
+}
+
+.chat-card .chat-bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.chat-card .chat-bubble-user {
+  flex-direction: row-reverse;
+}
+
+.chat-card .chat-bubble-avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e6f4ff;
+  color: #1677ff;
+  font-size: 16px;
+}
+
+.chat-card .chat-bubble-assistant .chat-bubble-avatar {
+  background: #f0f0f0;
+  color: #595959;
+}
+
+.chat-card .chat-bubble-content {
+  max-width: 70%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-card .chat-bubble-user .chat-bubble-content {
+  background: #1677ff;
+  color: #fff;
+}
+
+.chat-card .chat-bubble-assistant .chat-bubble-content {
+  background: #fff;
+  color: #262626;
+  border: 1px solid #f0f0f0;
+}
+
+.chat-card .chat-typing {
+  color: #8c8c8c;
+}
