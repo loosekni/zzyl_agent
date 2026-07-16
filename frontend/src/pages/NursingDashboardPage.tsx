@@ -8,8 +8,10 @@ import {
   type NursingProject,
   type Room,
   createAlert,
+  createBed,
   createElder,
   createNursingProject,
+  createRoom,
   listAlerts,
   listBeds,
   listElders,
@@ -24,6 +26,8 @@ export function NursingDashboardPage() {
   const [elderForm] = Form.useForm();
   const [alertForm] = Form.useForm();
   const [projectForm] = Form.useForm();
+  const [roomForm] = Form.useForm();
+  const [bedForm] = Form.useForm();
   const [elders, setElders] = useState<Elder[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [beds, setBeds] = useState<Bed[]>([]);
@@ -104,6 +108,20 @@ export function NursingDashboardPage() {
     loadData();
   };
 
+  const handleCreateRoom = async (values: { floor: string; room_no: string; room_type?: string }) => {
+    await createRoom({ ...values, room_type: values.room_type || 'standard' });
+    message.success('房间已保存');
+    roomForm.resetFields();
+    loadData();
+  };
+
+  const handleCreateBed = async (values: { room_id: number; bed_no: string; status?: string }) => {
+    await createBed({ ...values, status: values.status || 'available' });
+    message.success('床位已保存');
+    bedForm.resetFields();
+    loadData();
+  };
+
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <Card>
@@ -131,6 +149,83 @@ export function NursingDashboardPage() {
           <Card><Statistic title="护理项目" value={projects.length} suffix="项" /></Card>
         </Col>
       </Row>
+
+      <Card title="新增房间和床位">
+        <Row gutter={24}>
+          <Col xs={24} lg={12}>
+            <Form form={roomForm} layout="vertical" onFinish={handleCreateRoom}>
+              <Row gutter={16}>
+                <Col xs={24} md={8}>
+                  <Form.Item name="floor" label="楼层" rules={[{ required: true, message: '请输入楼层' }]}>
+                    <Input placeholder="例如：3F" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Form.Item name="room_no" label="房间号" rules={[{ required: true, message: '请输入房间号' }]}>
+                    <Input placeholder="例如：301" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Form.Item name="room_type" label="房型" initialValue="standard">
+                    <Select
+                      options={[
+                        { value: 'standard', label: '标准房' },
+                        { value: 'care', label: '护理房' },
+                        { value: 'vip', label: 'VIP 房' }
+                      ]}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Button type="primary" htmlType="submit">保存房间</Button>
+            </Form>
+          </Col>
+          <Col xs={24} lg={12}>
+            <Form form={bedForm} layout="vertical" onFinish={handleCreateBed}>
+              <Row gutter={16}>
+                <Col xs={24} md={10}>
+                  <Form.Item name="room_id" label="所属房间" rules={[{ required: true, message: '请选择房间' }]}>
+                    <Select
+                      placeholder="选择房间"
+                      options={rooms.map((room) => ({ value: room.id, label: `${room.floor}-${room.room_no}` }))}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Form.Item name="bed_no" label="床位号" rules={[{ required: true, message: '请输入床位号' }]}>
+                    <Input placeholder="例如：301-1" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item name="status" label="状态" initialValue="available">
+                    <Select
+                      options={[
+                        { value: 'available', label: '可用' },
+                        { value: 'occupied', label: '已入住' },
+                        { value: 'maintenance', label: '维护中' }
+                      ]}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Button type="primary" htmlType="submit">保存床位</Button>
+            </Form>
+          </Col>
+        </Row>
+      </Card>
+
+      <Card title="房间与床位">
+        <Table
+          rowKey="id"
+          dataSource={beds}
+          pagination={false}
+          columns={[
+            { title: '床位号', dataIndex: 'bed_no' },
+            { title: '房间 ID', dataIndex: 'room_id' },
+            { title: '状态', dataIndex: 'status' }
+          ]}
+        />
+      </Card>
 
       <Card title="新增老人档案">
         <Form form={elderForm} layout="vertical" onFinish={handleCreateElder}>

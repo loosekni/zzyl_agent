@@ -22,8 +22,20 @@ export interface Room {
   room_type: string;
 }
 
+export interface RoomCreatePayload {
+  floor: string;
+  room_no: string;
+  room_type: string;
+}
+
 export interface Bed {
   id: number;
+  room_id: number;
+  bed_no: string;
+  status: string;
+}
+
+export interface BedCreatePayload {
   room_id: number;
   bed_no: string;
   status: string;
@@ -70,8 +82,16 @@ export async function listRooms(): Promise<Room[]> {
   return fetchJson('/api/nursing/rooms');
 }
 
+export async function createRoom(payload: RoomCreatePayload): Promise<Room> {
+  return postJson('/api/nursing/rooms', payload);
+}
+
 export async function listBeds(): Promise<Bed[]> {
   return fetchJson('/api/nursing/beds');
+}
+
+export async function createBed(payload: BedCreatePayload): Promise<Bed> {
+  return postJson('/api/nursing/beds', payload);
 }
 
 export async function listNursingProjects(): Promise<NursingProject[]> {
