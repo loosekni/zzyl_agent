@@ -69,6 +69,10 @@ FastAPI 校验失败默认返回 422，结构如下（其它错误码见 [`error
 | POST | `/api/agent/checkin/recommendation` | 入住推荐建议 | ✅ |
 | POST | `/api/agent/care-plan` | 生成护理计划 | ✅ |
 | POST | `/api/agent/alert-analysis` | 告警分析 | ✅ |
+| POST | `/api/agent/health-profile` | 老人健康风险画像 | ✅ |
+| POST | `/api/agent/admission/preview` | 入住办理预览（reservation token） | ✅ |
+| POST | `/api/agent/admission/confirm` | 入住办理确认 | ✅ |
+| POST | `/api/agent/admission/cancel` | 入住办理取消 | ✅ |
 | POST | `/api/agent/chat/stream` | 对话流式输出（SSE） | 🔜 待开发 |
 | POST | `/api/agent/care-plan/stream` | 护理计划流式输出 | 🔜 待开发 |
 
