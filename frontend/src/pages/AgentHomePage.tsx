@@ -10,6 +10,7 @@ import {
   sendAgentMessage
 } from '../api/agent';
 import { type Elder, listElders } from '../api/nursing';
+import { AdmissionCard } from '../components/AdmissionCard';
 import { HealthProfileCard } from '../components/HealthProfileCard';
 
 const { Title, Paragraph, Text } = Typography;
@@ -140,6 +141,8 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
       </Card>
 
       <HealthProfileCard elders={elders} />
+
+      <AdmissionCard elders={elders} />
 
       <Card title="入住推荐">
         <Space direction="vertical" style={{ width: '100%' }}>

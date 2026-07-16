@@ -112,3 +112,69 @@ export async function requestHealthProfile(elderId: number): Promise<HealthProfi
 
   return response.json();
 }
+
+export interface AdmissionPreview {
+  run_id: number;
+  status: string;
+  elder_name: string;
+  bed_id: number;
+  bed_no: string;
+  preview_summary: string;
+  reservation_token: string;
+  expires_at: string;
+}
+
+export interface AdmissionResult {
+  run_id: number;
+  status: string;
+  elder_id: number;
+  bed_id?: number;
+  message: string;
+}
+
+async function parseAdmissionError(response: Response, fallback: string): Promise<never> {
+  const err = await response.json().catch(() => null);
+  throw new Error(err?.detail?.message || fallback);
+}
+
+export async function requestAdmissionPreview(elderId: number): Promise<AdmissionPreview> {
+  const response = await fetch('/api/agent/admission/preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ elder_id: elderId })
+  });
+  if (!response.ok) {
+    await parseAdmissionError(response, '生成入住预览失败');
+  }
+  return response.json();
+}
+
+export async function requestAdmissionConfirm(
+  runId: number,
+  token: string
+): Promise<AdmissionResult> {
+  const response = await fetch('/api/agent/admission/confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ run_id: runId, reservation_token: token })
+  });
+  if (!response.ok) {
+    await parseAdmissionError(response, '确认入住失败');
+  }
+  return response.json();
+}
+
+export async function requestAdmissionCancel(
+  runId: number,
+  token: string
+): Promise<AdmissionResult> {
+  const response = await fetch('/api/agent/admission/cancel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ run_id: runId, reservation_token: token })
+  });
+  if (!response.ok) {
+    await parseAdmissionError(response, '取消入住失败');
+  }
+  return response.json();
+}
