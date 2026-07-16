@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 
 import {
   checkAgentHealth,
+  requestAlertAnalysis,
   requestCarePlan,
   requestCheckInRecommendation,
   sendAgentMessage
@@ -23,9 +24,12 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
   const [carePlanElderName, setCarePlanElderName] = useState('');
   const [careGoal, setCareGoal] = useState('');
   const [carePlan, setCarePlan] = useState('');
+  const [alertId, setAlertId] = useState('');
+  const [alertAnalysis, setAlertAnalysis] = useState('');
   const [loading, setLoading] = useState(false);
   const [recommendLoading, setRecommendLoading] = useState(false);
   const [carePlanLoading, setCarePlanLoading] = useState(false);
+  const [alertLoading, setAlertLoading] = useState(false);
 
   useEffect(() => {
     checkAgentHealth()
@@ -66,6 +70,18 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
       antdMessage.error(error instanceof Error ? error.message : '请求失败');
     } finally {
       setCarePlanLoading(false);
+    }
+  };
+
+  const handleAlertAnalysis = async () => {
+    setAlertLoading(true);
+    try {
+      const data = await requestAlertAnalysis(Number(alertId));
+      setAlertAnalysis(data.analysis);
+    } catch (error) {
+      antdMessage.error(error instanceof Error ? error.message : '请求失败');
+    } finally {
+      setAlertLoading(false);
     }
   };
 
@@ -110,6 +126,20 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
             生成护理计划
           </Button>
           {carePlan ? <Card type="inner">{carePlan}</Card> : null}
+        </Space>
+      </Card>
+
+      <Card title="告警分析">
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Input
+            value={alertId}
+            placeholder="输入告警 ID"
+            onChange={(event) => setAlertId(event.target.value)}
+          />
+          <Button type="primary" loading={alertLoading} onClick={handleAlertAnalysis}>
+            生成告警分析
+          </Button>
+          {alertAnalysis ? <Card type="inner">{alertAnalysis}</Card> : null}
         </Space>
       </Card>
 

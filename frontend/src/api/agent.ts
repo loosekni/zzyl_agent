@@ -52,3 +52,17 @@ export async function requestCarePlan(
 
   return response.json();
 }
+
+export async function requestAlertAnalysis(alertId: number): Promise<{ alert_id: number; analysis: string }> {
+  const response = await fetch('/api/agent/alert-analysis', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ alert_id: alertId })
+  });
+
+  if (!response.ok) {
+    throw new Error('生成告警分析失败');
+  }
+
+  return response.json();
+}
