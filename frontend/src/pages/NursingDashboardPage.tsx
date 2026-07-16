@@ -9,6 +9,7 @@ import {
   type Room,
   createAlert,
   createElder,
+  createNursingProject,
   listAlerts,
   listBeds,
   listElders,
@@ -22,6 +23,7 @@ const { Title, Paragraph } = Typography;
 export function NursingDashboardPage() {
   const [elderForm] = Form.useForm();
   const [alertForm] = Form.useForm();
+  const [projectForm] = Form.useForm();
   const [elders, setElders] = useState<Elder[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [beds, setBeds] = useState<Bed[]>([]);
@@ -82,6 +84,23 @@ export function NursingDashboardPage() {
     await createAlert({ ...values, severity: values.severity || 'medium' });
     message.success('告警记录已保存');
     alertForm.resetFields();
+    loadData();
+  };
+
+  const handleCreateProject = async (values: {
+    name: string;
+    category?: string;
+    description?: string;
+    price?: number;
+  }) => {
+    await createNursingProject({
+      name: values.name,
+      category: values.category || 'daily',
+      description: values.description,
+      price: Number(values.price || 0)
+    });
+    message.success('护理项目已保存');
+    projectForm.resetFields();
     loadData();
   };
 
@@ -150,6 +169,54 @@ export function NursingDashboardPage() {
           </Row>
           <Button type="primary" htmlType="submit">保存老人档案</Button>
         </Form>
+      </Card>
+
+      <Card title="新增护理项目">
+        <Form form={projectForm} layout="vertical" onFinish={handleCreateProject}>
+          <Row gutter={16}>
+            <Col xs={24} md={8}>
+              <Form.Item name="name" label="项目名称" rules={[{ required: true, message: '请输入项目名称' }]}>
+                <Input placeholder="例如：血压监测" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item name="category" label="项目类型" initialValue="daily">
+                <Select
+                  options={[
+                    { value: 'daily', label: '日常照护' },
+                    { value: 'medical', label: '医疗护理' },
+                    { value: 'safety', label: '安全巡护' },
+                    { value: 'rehab', label: '康复训练' }
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item name="price" label="价格">
+                <Input type="number" placeholder="0" />
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Form.Item name="description" label="项目说明">
+                <Input.TextArea rows={2} placeholder="描述护理内容和执行要求" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Button type="primary" htmlType="submit">保存护理项目</Button>
+        </Form>
+      </Card>
+
+      <Card title="护理项目">
+        <Table
+          rowKey="id"
+          dataSource={projects}
+          pagination={false}
+          columns={[
+            { title: '项目名称', dataIndex: 'name' },
+            { title: '类型', dataIndex: 'category' },
+            { title: '价格', dataIndex: 'price' }
+          ]}
+        />
       </Card>
 
       <Card title="最新老人档案">

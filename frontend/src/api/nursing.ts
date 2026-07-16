@@ -36,6 +36,13 @@ export interface NursingProject {
   price: number;
 }
 
+export interface NursingProjectCreatePayload {
+  name: string;
+  category: string;
+  description?: string;
+  price: number;
+}
+
 export interface AlertRecord {
   id: number;
   device_name: string;
@@ -69,6 +76,10 @@ export async function listBeds(): Promise<Bed[]> {
 
 export async function listNursingProjects(): Promise<NursingProject[]> {
   return fetchJson('/api/nursing/projects');
+}
+
+export async function createNursingProject(payload: NursingProjectCreatePayload): Promise<NursingProject> {
+  return postJson('/api/nursing/projects', payload);
 }
 
 export async function listAlerts(): Promise<AlertRecord[]> {
