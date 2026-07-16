@@ -25,6 +25,26 @@ import {
 
 const { Title, Paragraph } = Typography;
 
+const bedStatusLabels: Record<string, string> = {
+  available: '可用',
+  occupied: '已入住',
+  maintenance: '维护中'
+};
+
+const alertSeverityLabels: Record<string, string> = {
+  low: '低',
+  medium: '中',
+  high: '高',
+  critical: '紧急'
+};
+
+const checkInStatusLabels: Record<string, string> = {
+  draft: '草稿',
+  reviewing: '审核中',
+  approved: '已通过',
+  rejected: '已拒绝'
+};
+
 export function NursingDashboardPage() {
   const [elderForm] = Form.useForm();
   const [alertForm] = Form.useForm();
@@ -250,7 +270,7 @@ export function NursingDashboardPage() {
           columns={[
             { title: '床位号', dataIndex: 'bed_no' },
             { title: '房间', dataIndex: 'room_id', render: (roomId: number) => getRoomLabel(roomId) },
-            { title: '状态', dataIndex: 'status' }
+            { title: '状态', dataIndex: 'status', render: (status: string) => bedStatusLabels[status] || status }
           ]}
         />
       </Card>
@@ -307,7 +327,7 @@ export function NursingDashboardPage() {
           columns={[
             { title: '老人', dataIndex: 'elder_id', render: (elderId: number) => getElderName(elderId) },
             { title: '偏好房型', dataIndex: 'preferred_room_type' },
-            { title: '状态', dataIndex: 'status' },
+            { title: '状态', dataIndex: 'status', render: (status: string) => checkInStatusLabels[status] || status },
             { title: '护理需求', dataIndex: 'care_needs' }
           ]}
         />
@@ -464,7 +484,11 @@ export function NursingDashboardPage() {
             {
               title: '级别',
               dataIndex: 'severity',
-              render: (severity: string) => <Tag color={severity === 'critical' ? 'red' : 'orange'}>{severity}</Tag>
+              render: (severity: string) => (
+                <Tag color={severity === 'critical' ? 'red' : 'orange'}>
+                  {alertSeverityLabels[severity] || severity}
+                </Tag>
+              )
             },
             { title: '内容', dataIndex: 'content' },
             { title: '状态', dataIndex: 'handled', render: (handled: boolean) => (handled ? '已处理' : '待处理') }
