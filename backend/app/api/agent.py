@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
+from app.agents.alert_analysis_graph import build_alert_analysis_graph
 from app.agents.care_plan_graph import build_care_plan_graph
 from app.agents.chat_graph import build_chat_graph
 from app.agents.checkin_graph import build_checkin_recommendation_graph
@@ -9,6 +10,8 @@ from app.core.llm import LLMClient, get_llm_client
 from app.schemas.agent import (
     AgentChatRequest,
     AgentChatResponse,
+    AlertAnalysisRequest,
+    AlertAnalysisResponse,
     CarePlanRequest,
     CarePlanResponse,
     CheckInRecommendationRequest,
@@ -59,3 +62,14 @@ async def generate_care_plan(
         care_goal=state["care_goal"],
         plan=state["plan"],
     )
+
+
+@router.post("/alert-analysis", response_model=AlertAnalysisResponse)
+async def analyze_alert(
+    request: AlertAnalysisRequest,
+    llm: LLMClient = Depends(get_llm_client),
+    session: Session = Depends(get_session),
+) -> AlertAnalysisResponse:
+    graph = build_alert_analysis_graph(llm, session)
+    state = await graph.ainvoke({"alert_id": request.alert_id, "analysis": ""})
+    return AlertAnalysisResponse(alert_id=state["alert_id"], analysis=state["analysis"])

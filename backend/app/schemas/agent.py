@@ -29,3 +29,12 @@ class CarePlanResponse(BaseModel):
     elder_name: str
     care_goal: str
     plan: str
+
+
+class AlertAnalysisRequest(BaseModel):
+    alert_id: int = Field(gt=0)
+
+
+class AlertAnalysisResponse(BaseModel):
+    alert_id: int
+    analysis: str
