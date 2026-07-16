@@ -1,4 +1,4 @@
-import { Alert, Card, Col, Row, Space, Statistic, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, Row, Space, Statistic, Table, Tag, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 
 import {
@@ -11,7 +11,8 @@ import {
   listBeds,
   listElders,
   listNursingProjects,
-  listRooms
+  listRooms,
+  seedDemoData
 } from '../api/nursing';
 
 const { Title, Paragraph } = Typography;
@@ -23,8 +24,9 @@ export function NursingDashboardPage() {
   const [projects, setProjects] = useState<NursingProject[]>([]);
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
   const [error, setError] = useState('');
+  const [seeding, setSeeding] = useState(false);
 
-  useEffect(() => {
+  const loadData = () => {
     Promise.all([listElders(), listRooms(), listBeds(), listNursingProjects(), listAlerts()])
       .then(([elderData, roomData, bedData, projectData, alertData]) => {
         setElders(elderData);
@@ -32,9 +34,27 @@ export function NursingDashboardPage() {
         setBeds(bedData);
         setProjects(projectData);
         setAlerts(alertData);
+        setError('');
       })
       .catch((loadError) => setError(loadError instanceof Error ? loadError.message : '加载失败'));
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
+
+  const handleSeedDemoData = async () => {
+    setSeeding(true);
+    try {
+      await seedDemoData();
+      message.success('演示数据已准备好');
+      loadData();
+    } catch (seedError) {
+      message.error(seedError instanceof Error ? seedError.message : '初始化失败');
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -43,7 +63,10 @@ export function NursingDashboardPage() {
         <Paragraph>
           这里承接原系统中的老人档案、房间床位、护理项目和告警数据，后续会接入入住推荐、护理计划和告警分析 Agent。
         </Paragraph>
-        {error ? <Alert type="warning" message={error} showIcon /> : null}
+        <Button type="primary" loading={seeding} onClick={handleSeedDemoData}>
+          初始化演示数据
+        </Button>
+        {error ? <Alert type="warning" message={error} showIcon style={{ marginTop: 16 }} /> : null}
       </Card>
 
       <Row gutter={[16, 16]}>

@@ -56,6 +56,20 @@ export async function listAlerts(): Promise<AlertRecord[]> {
   return fetchJson('/api/nursing/alerts');
 }
 
+export async function seedDemoData(): Promise<{
+  elders: number;
+  rooms: number;
+  beds: number;
+  projects: number;
+  alerts: number;
+}> {
+  const response = await fetch('/api/nursing/demo/seed', { method: 'POST' });
+  if (!response.ok) {
+    throw new Error('初始化演示数据失败');
+  }
+  return response.json();
+}
+
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
   if (!response.ok) {
