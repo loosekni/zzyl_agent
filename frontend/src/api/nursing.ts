@@ -70,6 +70,21 @@ export interface AlertCreatePayload {
   content: string;
 }
 
+export interface CheckInApplication {
+  id: number;
+  elder_id: number;
+  preferred_room_type?: string;
+  care_needs?: string;
+  status: string;
+}
+
+export interface CheckInCreatePayload {
+  elder_id: number;
+  preferred_room_type?: string;
+  care_needs?: string;
+  status: string;
+}
+
 export async function listElders(): Promise<Elder[]> {
   return fetchJson('/api/nursing/elders');
 }
@@ -108,6 +123,14 @@ export async function listAlerts(): Promise<AlertRecord[]> {
 
 export async function createAlert(payload: AlertCreatePayload): Promise<AlertRecord> {
   return postJson('/api/nursing/alerts', payload);
+}
+
+export async function listCheckIns(): Promise<CheckInApplication[]> {
+  return fetchJson('/api/nursing/checkins');
+}
+
+export async function createCheckIn(payload: CheckInCreatePayload): Promise<CheckInApplication> {
+  return postJson('/api/nursing/checkins', payload);
 }
 
 export async function seedDemoData(): Promise<{

@@ -4,16 +4,19 @@ import { useEffect, useState } from 'react';
 import {
   type AlertRecord,
   type Bed,
+  type CheckInApplication,
   type Elder,
   type NursingProject,
   type Room,
   createAlert,
   createBed,
+  createCheckIn,
   createElder,
   createNursingProject,
   createRoom,
   listAlerts,
   listBeds,
+  listCheckIns,
   listElders,
   listNursingProjects,
   listRooms,
@@ -28,22 +31,25 @@ export function NursingDashboardPage() {
   const [projectForm] = Form.useForm();
   const [roomForm] = Form.useForm();
   const [bedForm] = Form.useForm();
+  const [checkInForm] = Form.useForm();
   const [elders, setElders] = useState<Elder[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [beds, setBeds] = useState<Bed[]>([]);
   const [projects, setProjects] = useState<NursingProject[]>([]);
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
+  const [checkIns, setCheckIns] = useState<CheckInApplication[]>([]);
   const [error, setError] = useState('');
   const [seeding, setSeeding] = useState(false);
 
   const loadData = () => {
-    Promise.all([listElders(), listRooms(), listBeds(), listNursingProjects(), listAlerts()])
-      .then(([elderData, roomData, bedData, projectData, alertData]) => {
+    Promise.all([listElders(), listRooms(), listBeds(), listNursingProjects(), listAlerts(), listCheckIns()])
+      .then(([elderData, roomData, bedData, projectData, alertData, checkInData]) => {
         setElders(elderData);
         setRooms(roomData);
         setBeds(bedData);
         setProjects(projectData);
         setAlerts(alertData);
+        setCheckIns(checkInData);
         setError('');
       })
       .catch((loadError) => setError(loadError instanceof Error ? loadError.message : '加载失败'));
@@ -120,6 +126,23 @@ export function NursingDashboardPage() {
     message.success('床位已保存');
     bedForm.resetFields();
     loadData();
+  };
+
+  const handleCreateCheckIn = async (values: {
+    elder_id: number;
+    preferred_room_type?: string;
+    care_needs?: string;
+    status?: string;
+  }) => {
+    await createCheckIn({ ...values, status: values.status || 'draft' });
+    message.success('入住申请已保存');
+    checkInForm.resetFields();
+    loadData();
+  };
+
+  const getElderName = (elderId: number) => {
+    const elder = elders.find((item) => item.id === elderId);
+    return elder ? elder.name : elderId;
   };
 
   const getRoomLabel = (roomId: number) => {
@@ -228,6 +251,64 @@ export function NursingDashboardPage() {
             { title: '床位号', dataIndex: 'bed_no' },
             { title: '房间', dataIndex: 'room_id', render: (roomId: number) => getRoomLabel(roomId) },
             { title: '状态', dataIndex: 'status' }
+          ]}
+        />
+      </Card>
+
+      <Card title="入住申请">
+        <Form form={checkInForm} layout="vertical" onFinish={handleCreateCheckIn}>
+          <Row gutter={16}>
+            <Col xs={24} md={8}>
+              <Form.Item name="elder_id" label="申请老人" rules={[{ required: true, message: '请选择老人' }]}>
+                <Select
+                  placeholder="选择老人"
+                  options={elders.map((elder) => ({ value: elder.id, label: elder.name }))}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item name="preferred_room_type" label="偏好房型" initialValue="standard">
+                <Select
+                  options={[
+                    { value: 'standard', label: '标准房' },
+                    { value: 'care', label: '护理房' },
+                    { value: 'vip', label: 'VIP 房' }
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item name="status" label="状态" initialValue="draft">
+                <Select
+                  options={[
+                    { value: 'draft', label: '草稿' },
+                    { value: 'reviewing', label: '审核中' },
+                    { value: 'approved', label: '已通过' },
+                    { value: 'rejected', label: '已拒绝' }
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Form.Item name="care_needs" label="护理需求">
+                <Input.TextArea rows={2} placeholder="描述入住护理需求" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Button type="primary" htmlType="submit">保存入住申请</Button>
+        </Form>
+      </Card>
+
+      <Card title="入住申请列表">
+        <Table
+          rowKey="id"
+          dataSource={checkIns}
+          pagination={false}
+          columns={[
+            { title: '老人', dataIndex: 'elder_id', render: (elderId: number) => getElderName(elderId) },
+            { title: '偏好房型', dataIndex: 'preferred_room_type' },
+            { title: '状态', dataIndex: 'status' },
+            { title: '护理需求', dataIndex: 'care_needs' }
           ]}
         />
       </Card>
