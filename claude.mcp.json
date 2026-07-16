@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "zzyl-agent": {
+      "command": "python",
+      "args": ["-m", "app.mcp.server", "--stdio"],
+      "cwd": "backend",
+      "env": {
+        "PYTHONPATH": ".",
+        "ZZYL_API_BASE_URL": "http://127.0.0.1:8000"
+      }
+    }
+  }
+}
