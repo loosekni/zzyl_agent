@@ -74,3 +74,44 @@ class HealthProfileResponse(BaseModel):
     risk_level: str
     recommended_projects: list[str]
     summary: str
+
+
+class AdmissionPreviewRequest(BaseModel):
+    elder_id: int = Field(gt=0)
+    preferred_bed_id: int | None = Field(default=None, gt=0)
+
+
+class AdmissionPreviewResponse(BaseModel):
+    run_id: int
+    status: str
+    elder_name: str
+    bed_id: int
+    bed_no: str
+    preview_summary: str
+    reservation_token: str
+    expires_at: str
+
+
+class AdmissionConfirmRequest(BaseModel):
+    run_id: int = Field(gt=0)
+    reservation_token: str = Field(min_length=1)
+
+
+class AdmissionConfirmResponse(BaseModel):
+    run_id: int
+    status: str
+    elder_id: int
+    bed_id: int | None = None
+    message: str
+
+
+class AdmissionCancelRequest(BaseModel):
+    run_id: int = Field(gt=0)
+    reservation_token: str = Field(min_length=1)
+
+
+class AdmissionCancelResponse(BaseModel):
+    run_id: int
+    status: str
+    elder_id: int
+    message: str

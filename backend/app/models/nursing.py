@@ -80,3 +80,28 @@ class CheckInApplication(SQLModel, table=True):
     care_needs: str | None = None
     status: CheckInStatus = Field(default=CheckInStatus.draft)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class AdmissionStatus(StrEnum):
+    idle = "IDLE"
+    running = "RUNNING"
+    waiting_approval = "WAITING_APPROVAL"
+    completed = "COMPLETED"
+    cancelled = "CANCELLED"
+    expired = "EXPIRED"
+    failed = "FAILED"
+
+
+class AdmissionRun(SQLModel, table=True):
+    """入住办理 Agent 的有状态运行记录。简化版用 SQLite 持久化替代原项目的 Redis checkpoint。"""
+
+    id: int | None = Field(default=None, primary_key=True)
+    elder_id: int = Field(foreign_key="elder.id", index=True)
+    status: AdmissionStatus = Field(default=AdmissionStatus.waiting_approval, index=True)
+    reservation_token: str | None = Field(default=None, index=True)
+    expires_at: datetime | None = None
+    bed_id: int | None = Field(default=None, foreign_key="bed.id")
+    preview_summary: str | None = None
+    version: int = Field(default=1)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

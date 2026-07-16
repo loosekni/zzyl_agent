@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
+from app.agents.admission_agent import AdmissionAgent, AdmissionError
 from app.agents.alert_analysis_graph import build_alert_analysis_graph
 from app.agents.care_plan_graph import build_care_plan_graph
 from app.agents.chat_graph import build_chat_graph
@@ -9,6 +10,12 @@ from app.agents.health_profile_graph import build_health_profile_graph
 from app.core.database import get_session
 from app.core.llm import LLMClient, get_llm_client
 from app.schemas.agent import (
+    AdmissionCancelRequest,
+    AdmissionCancelResponse,
+    AdmissionConfirmRequest,
+    AdmissionConfirmResponse,
+    AdmissionPreviewRequest,
+    AdmissionPreviewResponse,
     AgentChatRequest,
     AgentChatResponse,
     AlertAnalysisRequest,
@@ -87,3 +94,48 @@ async def health_profile(
     graph = build_health_profile_graph(llm, session)
     state = await graph.ainvoke({"elder_id": request.elder_id})
     return HealthProfileResponse(**state)
+
+
+@router.post("/admission/preview", response_model=AdmissionPreviewResponse)
+async def admission_preview(
+    request: AdmissionPreviewRequest,
+    session: Session = Depends(get_session),
+) -> AdmissionPreviewResponse:
+    agent = AdmissionAgent(session)
+    try:
+        result = await agent.preview(request.elder_id, request.preferred_bed_id)
+        return AdmissionPreviewResponse(**result)
+    except AdmissionError as exc:
+        raise HTTPException(
+            status_code=400, detail={"code": exc.code, "message": str(exc)}
+        ) from exc
+
+
+@router.post("/admission/confirm", response_model=AdmissionConfirmResponse)
+async def admission_confirm(
+    request: AdmissionConfirmRequest,
+    session: Session = Depends(get_session),
+) -> AdmissionConfirmResponse:
+    agent = AdmissionAgent(session)
+    try:
+        result = await agent.confirm(request.run_id, request.reservation_token)
+        return AdmissionConfirmResponse(**result)
+    except AdmissionError as exc:
+        raise HTTPException(
+            status_code=400, detail={"code": exc.code, "message": str(exc)}
+        ) from exc
+
+
+@router.post("/admission/cancel", response_model=AdmissionCancelResponse)
+async def admission_cancel(
+    request: AdmissionCancelRequest,
+    session: Session = Depends(get_session),
+) -> AdmissionCancelResponse:
+    agent = AdmissionAgent(session)
+    try:
+        result = await agent.cancel(request.run_id, request.reservation_token)
+        return AdmissionCancelResponse(**result)
+    except AdmissionError as exc:
+        raise HTTPException(
+            status_code=400, detail={"code": exc.code, "message": str(exc)}
+        ) from exc
