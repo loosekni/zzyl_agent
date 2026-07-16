@@ -35,3 +35,20 @@ export async function requestCheckInRecommendation(
 
   return response.json();
 }
+
+export async function requestCarePlan(
+  elderName: string,
+  careGoal: string
+): Promise<{ elder_name: string; care_goal: string; plan: string }> {
+  const response = await fetch('/api/agent/care-plan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ elder_name: elderName, care_goal: careGoal })
+  });
+
+  if (!response.ok) {
+    throw new Error('生成护理计划失败');
+  }
+
+  return response.json();
+}

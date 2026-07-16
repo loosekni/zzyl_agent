@@ -1,7 +1,12 @@
 import { Button, Card, Input, Space, Typography, message as antdMessage } from 'antd';
 import { useEffect, useState } from 'react';
 
-import { checkAgentHealth, requestCheckInRecommendation, sendAgentMessage } from '../api/agent';
+import {
+  checkAgentHealth,
+  requestCarePlan,
+  requestCheckInRecommendation,
+  sendAgentMessage
+} from '../api/agent';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -15,8 +20,12 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
   const [answer, setAnswer] = useState('');
   const [elderName, setElderName] = useState('');
   const [recommendation, setRecommendation] = useState('');
+  const [carePlanElderName, setCarePlanElderName] = useState('');
+  const [careGoal, setCareGoal] = useState('');
+  const [carePlan, setCarePlan] = useState('');
   const [loading, setLoading] = useState(false);
   const [recommendLoading, setRecommendLoading] = useState(false);
+  const [carePlanLoading, setCarePlanLoading] = useState(false);
 
   useEffect(() => {
     checkAgentHealth()
@@ -48,6 +57,18 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
     }
   };
 
+  const handleCarePlan = async () => {
+    setCarePlanLoading(true);
+    try {
+      const data = await requestCarePlan(carePlanElderName, careGoal);
+      setCarePlan(data.plan);
+    } catch (error) {
+      antdMessage.error(error instanceof Error ? error.message : '请求失败');
+    } finally {
+      setCarePlanLoading(false);
+    }
+  };
+
   const content = (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <Card>
@@ -69,6 +90,26 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
             生成入住建议
           </Button>
           {recommendation ? <Card type="inner">{recommendation}</Card> : null}
+        </Space>
+      </Card>
+
+      <Card title="护理计划生成">
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Input
+            value={carePlanElderName}
+            placeholder="输入老人姓名"
+            onChange={(event) => setCarePlanElderName(event.target.value)}
+          />
+          <Input.TextArea
+            value={careGoal}
+            rows={3}
+            placeholder="输入护理目标，例如：控制跌倒风险、改善睡眠、加强慢病照护"
+            onChange={(event) => setCareGoal(event.target.value)}
+          />
+          <Button type="primary" loading={carePlanLoading} onClick={handleCarePlan}>
+            生成护理计划
+          </Button>
+          {carePlan ? <Card type="inner">{carePlan}</Card> : null}
         </Space>
       </Card>
 
