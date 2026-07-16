@@ -7,6 +7,7 @@ import {
   type Elder,
   type NursingProject,
   type Room,
+  createAlert,
   createElder,
   listAlerts,
   listBeds,
@@ -20,6 +21,7 @@ const { Title, Paragraph } = Typography;
 
 export function NursingDashboardPage() {
   const [elderForm] = Form.useForm();
+  const [alertForm] = Form.useForm();
   const [elders, setElders] = useState<Elder[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [beds, setBeds] = useState<Bed[]>([]);
@@ -68,6 +70,18 @@ export function NursingDashboardPage() {
     await createElder({ ...values, gender: values.gender || 'unknown' });
     message.success('老人档案已保存');
     elderForm.resetFields();
+    loadData();
+  };
+
+  const handleCreateAlert = async (values: {
+    elder_id?: number;
+    device_name: string;
+    severity?: string;
+    content: string;
+  }) => {
+    await createAlert({ ...values, severity: values.severity || 'medium' });
+    message.success('告警记录已保存');
+    alertForm.resetFields();
     loadData();
   };
 
@@ -151,6 +165,45 @@ export function NursingDashboardPage() {
             { title: '健康摘要', dataIndex: 'health_summary' }
           ]}
         />
+      </Card>
+
+      <Card title="新增告警记录">
+        <Form form={alertForm} layout="vertical" onFinish={handleCreateAlert}>
+          <Row gutter={16}>
+            <Col xs={24} md={8}>
+              <Form.Item name="elder_id" label="关联老人">
+                <Select
+                  allowClear
+                  placeholder="选择老人"
+                  options={elders.map((elder) => ({ value: elder.id, label: elder.name }))}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item name="device_name" label="设备名称" rules={[{ required: true, message: '请输入设备名称' }]}>
+                <Input placeholder="例如：智能床垫 A-301" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item name="severity" label="告警级别" initialValue="medium">
+                <Select
+                  options={[
+                    { value: 'low', label: '低' },
+                    { value: 'medium', label: '中' },
+                    { value: 'high', label: '高' },
+                    { value: 'critical', label: '紧急' }
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Form.Item name="content" label="告警内容" rules={[{ required: true, message: '请输入告警内容' }]}>
+                <Input.TextArea rows={2} placeholder="描述设备告警内容" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Button type="primary" htmlType="submit">保存告警记录</Button>
+        </Form>
       </Card>
 
       <Card title="告警记录">

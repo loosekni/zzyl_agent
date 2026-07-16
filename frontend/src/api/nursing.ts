@@ -44,6 +44,13 @@ export interface AlertRecord {
   handled: boolean;
 }
 
+export interface AlertCreatePayload {
+  elder_id?: number;
+  device_name: string;
+  severity: string;
+  content: string;
+}
+
 export async function listElders(): Promise<Elder[]> {
   return fetchJson('/api/nursing/elders');
 }
@@ -66,6 +73,10 @@ export async function listNursingProjects(): Promise<NursingProject[]> {
 
 export async function listAlerts(): Promise<AlertRecord[]> {
   return fetchJson('/api/nursing/alerts');
+}
+
+export async function createAlert(payload: AlertCreatePayload): Promise<AlertRecord> {
+  return postJson('/api/nursing/alerts', payload);
 }
 
 export async function seedDemoData(): Promise<{
