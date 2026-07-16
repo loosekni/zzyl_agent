@@ -19,3 +19,19 @@ export async function sendAgentMessage(message: string): Promise<{ answer: strin
 
   return response.json();
 }
+
+export async function requestCheckInRecommendation(
+  elderName: string
+): Promise<{ elder_name: string; suggestion: string }> {
+  const response = await fetch('/api/agent/checkin/recommendation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ elder_name: elderName })
+  });
+
+  if (!response.ok) {
+    throw new Error('生成入住建议失败');
+  }
+
+  return response.json();
+}
