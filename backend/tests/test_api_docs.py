@@ -1,14 +1,16 @@
 import json
+from pathlib import Path
+from typing import Any
 
 from scripts.generate_api_docs import generate_docs
 
 
 class FakeApp:
-    def openapi(self) -> dict:
+    def openapi(self) -> dict[str, Any]:
         return {"openapi": "3.1.0", "paths": {"/api/health": {"get": {"summary": "Health"}}}}
 
 
-def test_generate_docs_writes_openapi_and_mcp_manifest(tmp_path) -> None:
+def test_generate_docs_writes_openapi_and_mcp_manifest(tmp_path: Path) -> None:
     generate_docs(FakeApp(), tmp_path)
 
     openapi = json.loads((tmp_path / "openapi.json").read_text(encoding="utf-8"))
@@ -21,7 +23,7 @@ def test_generate_docs_writes_openapi_and_mcp_manifest(tmp_path) -> None:
     assert "nursing.seed_demo_data" in mcp_doc
 
 
-def test_check_mode_detects_document_drift(tmp_path) -> None:
+def test_check_mode_detects_document_drift(tmp_path: Path) -> None:
     generate_docs(FakeApp(), tmp_path)
     (tmp_path / "api.md").write_text("stale", encoding="utf-8")
 

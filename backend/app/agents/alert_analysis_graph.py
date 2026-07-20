@@ -1,6 +1,7 @@
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 from sqlmodel import Session, select
 
 from app.core.llm import LLMClient
@@ -33,7 +34,9 @@ async def _build_alert_analysis(session: Session, alert_id: int, llm: LLMClient)
     return await llm.chat(prompt)
 
 
-def build_alert_analysis_graph(llm: LLMClient, session: Session):
+def build_alert_analysis_graph(
+    llm: LLMClient, session: Session
+) -> CompiledStateGraph[AlertAnalysisState, None, Any, AlertAnalysisState]:
     async def analyze(state: AlertAnalysisState) -> AlertAnalysisState:
         analysis = await _build_alert_analysis(session, state["alert_id"], llm)
         return {"alert_id": state["alert_id"], "analysis": analysis}

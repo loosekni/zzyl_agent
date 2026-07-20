@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 from sqlmodel import Session, select
 
 from app.core.llm import LLMClient
@@ -53,7 +54,9 @@ class HealthProfileState(TypedDict, total=False):
     summary: str
 
 
-def build_health_profile_graph(llm: LLMClient, session: Session):
+def build_health_profile_graph(
+    llm: LLMClient, session: Session
+) -> CompiledStateGraph[HealthProfileState, None, Any, HealthProfileState]:
     """构建健康风险画像 graph。llm 预留用于后续增强总结，当前为模板化生成。"""
 
     async def collect(state: HealthProfileState) -> HealthProfileState:

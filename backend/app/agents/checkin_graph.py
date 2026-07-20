@@ -1,6 +1,7 @@
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 from sqlmodel import Session, select
 
 from app.core.llm import LLMClient
@@ -30,7 +31,9 @@ async def _build_suggestion(session: Session, elder_name: str, llm: LLMClient) -
     return await llm.chat(prompt)
 
 
-def build_checkin_recommendation_graph(llm: LLMClient, session: Session):
+def build_checkin_recommendation_graph(
+    llm: LLMClient, session: Session
+) -> CompiledStateGraph[RecommendationState, None, Any, RecommendationState]:
     async def recommend(state: RecommendationState) -> RecommendationState:
         suggestion = await _build_suggestion(session, state["elder_name"], llm)
         return {"elder_name": state["elder_name"], "suggestion": suggestion}

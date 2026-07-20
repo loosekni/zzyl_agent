@@ -1,6 +1,7 @@
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 from sqlmodel import Session, select
 
 from app.core.llm import LLMClient
@@ -34,7 +35,9 @@ async def _build_care_plan(session: Session, elder_name: str, care_goal: str, ll
     return await llm.chat(prompt)
 
 
-def build_care_plan_graph(llm: LLMClient, session: Session):
+def build_care_plan_graph(
+    llm: LLMClient, session: Session
+) -> CompiledStateGraph[CarePlanState, None, Any, CarePlanState]:
     async def generate(state: CarePlanState) -> CarePlanState:
         plan = await _build_care_plan(session, state["elder_name"], state["care_goal"], llm)
         return {"elder_name": state["elder_name"], "care_goal": state["care_goal"], "plan": plan}

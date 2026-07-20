@@ -8,6 +8,7 @@ confirm 时标记床位 occupied；过期或非法状态转换被拒绝。versio
 
 import secrets
 from datetime import datetime, timedelta, timezone
+from typing import TypedDict
 
 from sqlmodel import Session, select
 
@@ -32,13 +33,41 @@ class AdmissionError(Exception):
         super().__init__(message)
 
 
+class AdmissionPreviewResult(TypedDict):
+    run_id: int
+    status: str
+    elder_name: str
+    bed_id: int
+    bed_no: str
+    preview_summary: str
+    reservation_token: str
+    expires_at: str
+
+
+class AdmissionConfirmResult(TypedDict):
+    run_id: int
+    status: str
+    elder_id: int
+    bed_id: int | None
+    message: str
+
+
+class AdmissionCancelResult(TypedDict):
+    run_id: int
+    status: str
+    elder_id: int
+    message: str
+
+
 class AdmissionAgent:
     """有状态入住办理 Agent：preview → 人工确认 → confirm/cancel。"""
 
     def __init__(self, session: Session):
         self.session = session
 
-    async def preview(self, elder_id: int, preferred_bed_id: int | None = None) -> dict:
+    async def preview(
+        self, elder_id: int, preferred_bed_id: int | None = None
+    ) -> AdmissionPreviewResult:
         elder = self.session.get(Elder, elder_id)
         if elder is None:
             raise AdmissionError("ELDER_NOT_FOUND", f"未找到老人 id={elder_id}")
@@ -77,6 +106,8 @@ class AdmissionAgent:
         self.session.add(run)
         self.session.commit()
         self.session.refresh(run)
+        if run.id is None or bed.id is None:
+            raise AdmissionError("PERSIST_FAILED", "入住办理预览保存失败。")
 
         return {
             "run_id": run.id,
@@ -89,7 +120,7 @@ class AdmissionAgent:
             "expires_at": expires_at.isoformat(),
         }
 
-    async def confirm(self, run_id: int, reservation_token: str) -> dict:
+    async def confirm(self, run_id: int, reservation_token: str) -> AdmissionConfirmResult:
         run = self._load_and_validate(run_id, reservation_token)
 
         if run.bed_id is not None:
@@ -106,6 +137,8 @@ class AdmissionAgent:
         self.session.add(run)
         self.session.commit()
         self.session.refresh(run)
+        if run.id is None:
+            raise AdmissionError("PERSIST_FAILED", "入住办理确认保存失败。")
 
         return {
             "run_id": run.id,
@@ -115,7 +148,7 @@ class AdmissionAgent:
             "message": "入住已确认，床位已标记为已入住。",
         }
 
-    async def cancel(self, run_id: int, reservation_token: str) -> dict:
+    async def cancel(self, run_id: int, reservation_token: str) -> AdmissionCancelResult:
         run = self._load_and_validate(run_id, reservation_token)
 
         run.status = AdmissionStatus.cancelled
@@ -126,6 +159,8 @@ class AdmissionAgent:
         self.session.add(run)
         self.session.commit()
         self.session.refresh(run)
+        if run.id is None:
+            raise AdmissionError("PERSIST_FAILED", "入住预约取消保存失败。")
 
         return {
             "run_id": run.id,
