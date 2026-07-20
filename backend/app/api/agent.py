@@ -58,7 +58,16 @@ async def chat(request: AgentChatRequest, llm: LLMClient = Depends(get_llm_clien
     return AgentChatResponse(answer=state["answer"], conversation_id=request.conversation_id)
 
 
-@router.post("/chat/stream")
+@router.post(
+    "/chat/stream",
+    response_class=StreamingResponse,
+    responses={
+        200: {
+            "content": {"text/event-stream": {"schema": {"type": "string"}}},
+            "description": "Server-sent event stream of chat tokens.",
+        }
+    },
+)
 async def chat_stream(
     request: AgentChatRequest, llm: LLMClient = Depends(get_llm_client)
 ) -> StreamingResponse:

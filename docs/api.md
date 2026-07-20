@@ -20,6 +20,9 @@ Generate Care Plan
 ## POST /api/agent/chat
 Chat
 
+## POST /api/agent/chat/stream
+Chat Stream
+
 ## POST /api/agent/checkin/recommendation
 Recommend Checkin
 

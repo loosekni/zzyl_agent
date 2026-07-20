@@ -1391,6 +1391,47 @@
         ]
       }
     },
+    "/api/agent/chat/stream": {
+      "post": {
+        "operationId": "chat_stream_api_agent_chat_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Server-sent event stream of chat tokens."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chat Stream",
+        "tags": [
+          "agent"
+        ]
+      }
+    },
     "/api/agent/checkin/recommendation": {
       "post": {
         "operationId": "recommend_checkin_api_agent_checkin_recommendation_post",
