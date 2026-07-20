@@ -161,7 +161,7 @@ async def recommend_checkin(
     session: Session = Depends(get_session),
 ) -> CheckInRecommendationResponse:
     graph = build_checkin_recommendation_graph(llm, session)
-    state = await graph.ainvoke({"elder_name": request.elder_name, "suggestion": ""})
+    state = await graph.ainvoke({"elder_name": request.elder_name, "messages": [], "suggestion": ""})
     return CheckInRecommendationResponse(
         elder_name=state["elder_name"],
         suggestion=state["suggestion"],
