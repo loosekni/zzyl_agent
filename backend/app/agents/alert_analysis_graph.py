@@ -6,6 +6,7 @@ from sqlmodel import Session, select
 
 from app.core.llm import LLMClient
 from app.models.nursing import AlertRecord, Elder
+from app.prompts.agent import build_alert_analysis_prompt
 
 
 class AlertAnalysisState(TypedDict):
@@ -23,13 +24,12 @@ async def _build_alert_analysis(session: Session, alert_id: int, llm: LLMClient)
     if alert.elder_id is not None:
         elder = session.exec(select(Elder).where(Elder.id == alert.elder_id)).first()
 
-    prompt = (
-        f"告警设备：{alert.device_name}\n"
-        f"告警级别：{alert.severity}\n"
-        f"告警内容：{alert.content}\n"
-        f"老人姓名：{elder.name if elder else '未关联'}\n"
-        f"健康摘要：{elder.health_summary if elder else '无'}\n"
-        "请生成告警分析，包含可能原因、风险判断、护理处置建议和是否需要升级处理。"
+    prompt = build_alert_analysis_prompt(
+        device_name=alert.device_name,
+        severity=alert.severity.value,
+        content=alert.content,
+        elder_name=elder.name if elder else None,
+        health_summary=elder.health_summary if elder else None,
     )
     return await llm.chat(prompt)
 

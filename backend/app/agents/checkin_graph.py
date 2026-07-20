@@ -6,6 +6,7 @@ from sqlmodel import Session, select
 
 from app.core.llm import LLMClient
 from app.models.nursing import Bed, BedStatus, Elder, NursingProject
+from app.prompts.agent import build_checkin_recommendation_prompt
 
 
 class RecommendationState(TypedDict):
@@ -21,12 +22,11 @@ async def _build_suggestion(session: Session, elder_name: str, llm: LLMClient) -
     if elder is None:
         return f"未找到老人 {elder_name} 的档案。"
 
-    prompt = (
-        f"老人姓名：{elder.name}\n"
-        f"健康摘要：{elder.health_summary or '无'}\n"
-        f"可用床位数：{len(available_beds)}\n"
-        f"护理项目数：{len(projects)}\n"
-        "请给出简短入住建议，包含床位匹配、护理关注点和下一步动作。"
+    prompt = build_checkin_recommendation_prompt(
+        elder_name=elder.name,
+        health_summary=elder.health_summary,
+        available_bed_count=len(available_beds),
+        nursing_project_count=len(projects),
     )
     return await llm.chat(prompt)
 
