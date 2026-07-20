@@ -7,7 +7,7 @@ import {
   requestAlertAnalysis,
   requestCarePlan,
   requestCheckInRecommendation,
-  sendAgentMessage
+  streamAgentMessage
 } from '../api/agent';
 import { type Elder, listElders } from '../api/nursing';
 import { AdmissionCard } from '../components/AdmissionCard';
@@ -68,14 +68,25 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
     if (!text || loading) {
       return;
     }
-    const next = [...messages, { role: 'user' as const, content: text }];
+    const assistantIndex = messages.length + 1;
+    const next: ChatMessage[] = [
+      ...messages,
+      { role: 'user', content: text },
+      { role: 'assistant', content: '' }
+    ];
     setMessages(next);
     setInput('');
     setLoading(true);
     try {
-      const data = await sendAgentMessage(text);
-      setMessages([...next, { role: 'assistant', content: data.answer }]);
+      await streamAgentMessage(text, (token) => {
+        setMessages((current) =>
+          current.map((message, index) =>
+            index === assistantIndex ? { ...message, content: message.content + token } : message
+          )
+        );
+      });
     } catch (error) {
+      setMessages((current) => current.filter((_, index) => index !== assistantIndex));
       antdMessage.error(error instanceof Error ? error.message : '请求失败');
     } finally {
       setLoading(false);
@@ -213,17 +224,11 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
               <div className="chat-bubble-avatar">
                 {msg.role === 'user' ? <TeamOutlined /> : <RobotOutlined />}
               </div>
-              <div className="chat-bubble-content">{msg.content}</div>
+              <div className="chat-bubble-content">
+                {msg.content || (msg.role === 'assistant' && loading ? '正在思考...' : '')}
+              </div>
             </div>
           ))}
-          {loading ? (
-            <div className="chat-bubble chat-bubble-assistant">
-              <div className="chat-bubble-avatar">
-                <RobotOutlined />
-              </div>
-              <div className="chat-bubble-content chat-typing">正在思考...</div>
-            </div>
-          ) : null}
           <div ref={chatEndRef} />
         </div>
         <Input.TextArea

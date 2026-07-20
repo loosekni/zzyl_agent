@@ -20,6 +20,61 @@ export async function sendAgentMessage(message: string): Promise<{ answer: strin
   return response.json();
 }
 
+export async function streamAgentMessage(
+  message: string,
+  onToken: (token: string) => void
+): Promise<void> {
+  const response = await fetch('/api/agent/chat/stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message })
+  });
+
+  if (!response.ok || !response.body) {
+    throw new Error('发送消息失败');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) {
+      break;
+    }
+    buffer += decoder.decode(value, { stream: true });
+    buffer = consumeSseBuffer(buffer, onToken);
+  }
+
+  buffer += decoder.decode();
+  consumeSseBuffer(buffer, onToken);
+}
+
+function consumeSseBuffer(buffer: string, onToken: (token: string) => void): string {
+  const events = buffer.split('\n\n');
+  const pending = events.pop() ?? '';
+
+  for (const event of events) {
+    const dataLine = event.split('\n').find((line) => line.startsWith('data: '));
+    if (!dataLine) {
+      continue;
+    }
+
+    const data = dataLine.slice('data: '.length);
+    if (data === '[DONE]') {
+      continue;
+    }
+
+    const payload = JSON.parse(data) as { token?: string };
+    if (payload.token) {
+      onToken(payload.token);
+    }
+  }
+
+  return pending;
+}
+
 export async function requestCheckInRecommendation(
   elderName: string
 ): Promise<{ elder_name: string; suggestion: string }> {
