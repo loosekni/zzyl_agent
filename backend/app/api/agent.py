@@ -192,7 +192,19 @@ async def analyze_alert(
     session: Session = Depends(get_session),
 ) -> AlertAnalysisResponse:
     graph = build_alert_analysis_graph(llm, session)
-    state = await graph.ainvoke({"alert_id": request.alert_id, "analysis": ""})
+    state = await graph.ainvoke(
+        {
+            "alert_id": request.alert_id,
+            "device_name": "",
+            "severity": "",
+            "content": "",
+            "elder_name": "",
+            "health_summary": "",
+            "risk_route": "routine",
+            "risk_summary": "",
+            "analysis": "",
+        }
+    )
     return AlertAnalysisResponse(alert_id=state["alert_id"], analysis=state["analysis"])
 
 

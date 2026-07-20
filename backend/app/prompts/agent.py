@@ -43,12 +43,16 @@ def build_alert_analysis_prompt(
     content: str,
     elder_name: str | None,
     health_summary: str | None,
+    risk_summary: str = "",
+    response_focus: str = "请生成告警分析，包含可能原因、风险判断、护理处置建议和是否需要升级处理。",
 ) -> str:
+    risk_line = f"风险分级：{risk_summary}\n" if risk_summary else ""
     return (
         f"告警设备：{device_name}\n"
         f"告警级别：{severity}\n"
         f"告警内容：{content}\n"
         f"老人姓名：{elder_name or '未关联'}\n"
         f"健康摘要：{health_summary or '无'}\n"
-        "请生成告警分析，包含可能原因、风险判断、护理处置建议和是否需要升级处理。"
+        f"{risk_line}"
+        f"{response_focus}"
     )
