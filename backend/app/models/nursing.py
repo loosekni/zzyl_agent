@@ -4,6 +4,26 @@ from enum import StrEnum
 from sqlmodel import Field, SQLModel
 
 
+class MessageRole(StrEnum):
+    user = "user"
+    assistant = "assistant"
+
+
+class ConversationRecord(SQLModel, table=True):
+    id: str = Field(primary_key=True, max_length=64)
+    title: str | None = Field(default=None, max_length=200)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class MessageRecord(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    conversation_id: str = Field(foreign_key="conversationrecord.id", index=True, max_length=64)
+    role: MessageRole = Field(index=True)
+    content: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+
+
 class Gender(StrEnum):
     male = "male"
     female = "female"

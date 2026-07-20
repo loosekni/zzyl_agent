@@ -4,7 +4,10 @@ from app.models.nursing import (
     AlertRecord,
     Bed,
     CheckInApplication,
+    ConversationRecord,
     Elder,
+    MessageRecord,
+    MessageRole,
     NursingProject,
     Room,
 )
@@ -15,7 +18,10 @@ __all__ = [
     "AlertRecord",
     "Bed",
     "CheckInApplication",
+    "ConversationRecord",
     "Elder",
+    "MessageRecord",
+    "MessageRole",
     "NursingProject",
     "Room",
 ]
