@@ -1,4 +1,8 @@
+import json
+from collections.abc import AsyncIterator
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlmodel import Session
 
 from app.agents.admission_agent import AdmissionAgent, AdmissionError
@@ -31,6 +35,17 @@ from app.schemas.agent import (
 router = APIRouter(prefix="/agent", tags=["agent"])
 
 
+def _sse_data(payload: dict[str, str] | str) -> str:
+    data = payload if isinstance(payload, str) else json.dumps(payload, ensure_ascii=False)
+    return f"data: {data}\n\n"
+
+
+async def _stream_chat_tokens(message: str, llm: LLMClient) -> AsyncIterator[str]:
+    async for token in llm.stream(message):
+        yield _sse_data({"token": token})
+    yield _sse_data("[DONE]")
+
+
 @router.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -41,6 +56,16 @@ async def chat(request: AgentChatRequest, llm: LLMClient = Depends(get_llm_clien
     graph = build_chat_graph(llm)
     state = await graph.ainvoke({"message": request.message, "answer": ""})
     return AgentChatResponse(answer=state["answer"], conversation_id=request.conversation_id)
+
+
+@router.post("/chat/stream")
+async def chat_stream(
+    request: AgentChatRequest, llm: LLMClient = Depends(get_llm_client)
+) -> StreamingResponse:
+    return StreamingResponse(
+        _stream_chat_tokens(request.message, llm),
+        media_type="text/event-stream",
+    )
 
 
 @router.post("/checkin/recommendation", response_model=CheckInRecommendationResponse)
