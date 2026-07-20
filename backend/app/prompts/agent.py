@@ -1,6 +1,12 @@
 """Chinese prompt builders for agent workflows."""
 
 
+def build_chat_prompt(message: str, history: str) -> str:
+    if not history:
+        return message
+    return f"以下是当前会话的历史消息：\n{history}\n\n请回答用户最新问题：{message}"
+
+
 def build_checkin_recommendation_prompt(
     elder_name: str,
     health_summary: str | None,

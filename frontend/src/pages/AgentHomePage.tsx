@@ -30,6 +30,7 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
 
   // 对话（多轮）
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [conversationId, setConversationId] = useState<string>();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -78,13 +79,17 @@ export function AgentHomePage({ embedded = false }: AgentHomePageProps) {
     setInput('');
     setLoading(true);
     try {
-      await streamAgentMessage(text, (token) => {
-        setMessages((current) =>
-          current.map((message, index) =>
-            index === assistantIndex ? { ...message, content: message.content + token } : message
-          )
-        );
-      });
+      await streamAgentMessage(
+        text,
+        (token) => {
+          setMessages((current) =>
+            current.map((message, index) =>
+              index === assistantIndex ? { ...message, content: message.content + token } : message
+            )
+          );
+        },
+        { conversationId, onConversationId: setConversationId }
+      );
     } catch (error) {
       setMessages((current) => current.filter((_, index) => index !== assistantIndex));
       antdMessage.error(error instanceof Error ? error.message : '请求失败');

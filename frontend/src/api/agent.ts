@@ -6,11 +6,14 @@ export async function checkAgentHealth(): Promise<{ status: string }> {
   return response.json();
 }
 
-export async function sendAgentMessage(message: string): Promise<{ answer: string }> {
+export async function sendAgentMessage(
+  message: string,
+  conversationId?: string
+): Promise<{ answer: string; conversation_id: string }> {
   const response = await fetch('/api/agent/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message })
+    body: JSON.stringify({ message, conversation_id: conversationId })
   });
 
   if (!response.ok) {
@@ -22,12 +25,13 @@ export async function sendAgentMessage(message: string): Promise<{ answer: strin
 
 export async function streamAgentMessage(
   message: string,
-  onToken: (token: string) => void
+  onToken: (token: string) => void,
+  options: { conversationId?: string; onConversationId?: (conversationId: string) => void } = {}
 ): Promise<void> {
   const response = await fetch('/api/agent/chat/stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message })
+    body: JSON.stringify({ message, conversation_id: options.conversationId })
   });
 
   if (!response.ok || !response.body) {
@@ -44,14 +48,18 @@ export async function streamAgentMessage(
       break;
     }
     buffer += decoder.decode(value, { stream: true });
-    buffer = consumeSseBuffer(buffer, onToken);
+    buffer = consumeSseBuffer(buffer, onToken, options.onConversationId);
   }
 
   buffer += decoder.decode();
-  consumeSseBuffer(buffer, onToken);
+  consumeSseBuffer(buffer, onToken, options.onConversationId);
 }
 
-function consumeSseBuffer(buffer: string, onToken: (token: string) => void): string {
+function consumeSseBuffer(
+  buffer: string,
+  onToken: (token: string) => void,
+  onConversationId?: (conversationId: string) => void
+): string {
   const events = buffer.split('\n\n');
   const pending = events.pop() ?? '';
 
@@ -66,7 +74,10 @@ function consumeSseBuffer(buffer: string, onToken: (token: string) => void): str
       continue;
     }
 
-    const payload = JSON.parse(data) as { token?: string };
+    const payload = JSON.parse(data) as { token?: string; conversation_id?: string };
+    if (payload.conversation_id) {
+      onConversationId?.(payload.conversation_id);
+    }
     if (payload.token) {
       onToken(payload.token);
     }

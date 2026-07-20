@@ -1,9 +1,11 @@
 import json
 from collections.abc import AsyncIterator
+from datetime import datetime, timezone
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.agents.admission_agent import AdmissionAgent, AdmissionError
 from app.agents.alert_analysis_graph import build_alert_analysis_graph
@@ -13,6 +15,8 @@ from app.agents.checkin_graph import build_checkin_recommendation_graph
 from app.agents.health_profile_graph import build_health_profile_graph
 from app.core.database import get_session
 from app.core.llm import LLMClient, get_llm_client
+from app.models.nursing import ConversationRecord, MessageRecord, MessageRole
+from app.prompts.agent import build_chat_prompt
 from app.schemas.agent import (
     AdmissionCancelRequest,
     AdmissionCancelResponse,
@@ -40,10 +44,68 @@ def _sse_data(payload: dict[str, str] | str) -> str:
     return f"data: {data}\n\n"
 
 
-async def _stream_chat_tokens(message: str, llm: LLMClient) -> AsyncIterator[str]:
-    async for token in llm.stream(message):
+async def _stream_chat_tokens(
+    prompt: str,
+    llm: LLMClient,
+    session: Session,
+    conversation_id: str,
+) -> AsyncIterator[str]:
+    chunks: list[str] = []
+    yield _sse_data({"conversation_id": conversation_id})
+    async for token in llm.stream(prompt):
+        chunks.append(token)
         yield _sse_data({"token": token})
+    _append_message(session, conversation_id, MessageRole.assistant, "".join(chunks))
     yield _sse_data("[DONE]")
+
+
+def _resolve_conversation(session: Session, conversation_id: str | None, first_message: str) -> str:
+    if conversation_id:
+        conversation = session.get(ConversationRecord, conversation_id)
+        if conversation is None:
+            conversation = ConversationRecord(id=conversation_id, title=_conversation_title(first_message))
+            session.add(conversation)
+            session.commit()
+        return conversation_id
+
+    generated_id = uuid4().hex
+    conversation = ConversationRecord(id=generated_id, title=_conversation_title(first_message))
+    session.add(conversation)
+    session.commit()
+    return generated_id
+
+
+def _load_history(session: Session, conversation_id: str, limit: int = 12) -> str:
+    statement = select(MessageRecord).where(MessageRecord.conversation_id == conversation_id)
+    messages = sorted(
+        session.exec(statement).all(),
+        key=lambda message: (message.created_at, message.id or 0),
+    )[-limit:]
+    return "\n".join(f"{_role_label(message.role)}：{message.content}" for message in messages)
+
+
+def _append_message(
+    session: Session, conversation_id: str, role: MessageRole, content: str
+) -> MessageRecord:
+    conversation = session.get(ConversationRecord, conversation_id)
+    if conversation is not None:
+        conversation.updated_at = datetime.now(timezone.utc)
+        session.add(conversation)
+    record = MessageRecord(conversation_id=conversation_id, role=role, content=content)
+    session.add(record)
+    session.commit()
+    session.refresh(record)
+    return record
+
+
+def _conversation_title(message: str) -> str:
+    return message[:40]
+
+
+def _role_label(role: MessageRole) -> str:
+    if role == MessageRole.user:
+        return "用户"
+    return "助手"
 
 
 @router.get("/health")
@@ -52,10 +114,19 @@ async def health() -> dict[str, str]:
 
 
 @router.post("/chat", response_model=AgentChatResponse)
-async def chat(request: AgentChatRequest, llm: LLMClient = Depends(get_llm_client)) -> AgentChatResponse:
+async def chat(
+    request: AgentChatRequest,
+    llm: LLMClient = Depends(get_llm_client),
+    session: Session = Depends(get_session),
+) -> AgentChatResponse:
+    conversation_id = _resolve_conversation(session, request.conversation_id, request.message)
+    history = _load_history(session, conversation_id)
+    _append_message(session, conversation_id, MessageRole.user, request.message)
+
     graph = build_chat_graph(llm)
-    state = await graph.ainvoke({"message": request.message, "answer": ""})
-    return AgentChatResponse(answer=state["answer"], conversation_id=request.conversation_id)
+    state = await graph.ainvoke({"message": request.message, "history": history, "answer": ""})
+    _append_message(session, conversation_id, MessageRole.assistant, state["answer"])
+    return AgentChatResponse(answer=state["answer"], conversation_id=conversation_id)
 
 
 @router.post(
@@ -69,10 +140,16 @@ async def chat(request: AgentChatRequest, llm: LLMClient = Depends(get_llm_clien
     },
 )
 async def chat_stream(
-    request: AgentChatRequest, llm: LLMClient = Depends(get_llm_client)
+    request: AgentChatRequest,
+    llm: LLMClient = Depends(get_llm_client),
+    session: Session = Depends(get_session),
 ) -> StreamingResponse:
+    conversation_id = _resolve_conversation(session, request.conversation_id, request.message)
+    history = _load_history(session, conversation_id)
+    _append_message(session, conversation_id, MessageRole.user, request.message)
+    prompt = build_chat_prompt(request.message, history)
     return StreamingResponse(
-        _stream_chat_tokens(request.message, llm),
+        _stream_chat_tokens(prompt, llm, session, conversation_id),
         media_type="text/event-stream",
     )
 
